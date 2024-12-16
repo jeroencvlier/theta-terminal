@@ -1,7 +1,10 @@
 services:
   - name: theta-terminal
     type: pserv
-    env: docker
+    runtime: docker
+    plan: starter
+    region: ohio
+    branch: main
     dockerfilePath: Dockerfile
     envVars:
       - key: THETADATAUSERNAME
