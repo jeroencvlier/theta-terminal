@@ -1,15 +1,19 @@
 FROM eclipse-temurin:21-jre-alpine
 
+# Set working directory
 WORKDIR /app
 
-RUN mkdir -p /root/ThetaData/ThetaTerminal && \
+# Install curl using apk
+RUN apk add --no-cache curl && \
+    mkdir -p /root/ThetaData/ThetaTerminal && \
     rm -rf /var/cache/apk/* && \
     rm -rf /tmp/*
 
+# Copy configuration files and the JAR file
 COPY configs/ /root/ThetaData/ThetaTerminal/
 COPY ThetaTerminal.jar .
 
-# Using shell form for environment variable expansion
+# Set the entry point for the application
 ENTRYPOINT java \
     -XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=75.0 \
