@@ -13,4 +13,6 @@ services:
     ports:
       - 25510
       - 25511
-    healthCheckCommand: ["curl", "-f", "http://localhost:25510/v2/system/mdds/status"]
+    healthCheckProtocol: http
+    healthCheckPath: /v2/system/mdds/status
+    healthCheckPort: 25510
