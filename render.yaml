@@ -1,7 +1,7 @@
 services:
   - name: theta-terminal
-    type: web  # You can use "web" or "worker" depending on the service type
-    env: docker  # Indicates a Docker service
+    type: web
+    env: docker
     dockerfilePath: Dockerfile
     envVars:
       - key: THETADATAUSERNAME
@@ -13,3 +13,4 @@ services:
     ports:
       - 25510
       - 25511
+    healthCheckPath: "/nonexistent"  # Redirect Render's health checks to a non-blocking endpoint
