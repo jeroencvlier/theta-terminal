@@ -1,0 +1,11 @@
+services:
+  theta-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: theta-terminal:latest
+    env_file:
+      - .env
+    ports:
+      - "25510:25510"
+      - "25511:25511"
