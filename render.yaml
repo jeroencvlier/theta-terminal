@@ -1,6 +1,6 @@
 services:
   - name: theta-terminal
-    type: private
+    type: pserv
     env: docker
     dockerfilePath: Dockerfile
     envVars:
