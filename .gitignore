@@ -5,6 +5,7 @@ __pycache__/
 
 
 docker-compose.override.yml
+**.DS_Store
 
 # C extensions
 *.so
