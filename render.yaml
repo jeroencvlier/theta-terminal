@@ -1,6 +1,6 @@
 services:
   - name: theta-terminal
-    type: web
+    type: private
     env: docker
     dockerfilePath: Dockerfile
     envVars:
