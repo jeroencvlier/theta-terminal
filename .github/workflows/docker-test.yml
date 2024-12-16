@@ -1,4 +1,4 @@
-name: Docker Build, Test, and Create Pull Request
+name: Docker Build, and Test
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ dev ]
 
 jobs:
-  test:
+  build-test-connect:
     runs-on: ubuntu-latest
     
     steps:
@@ -29,24 +29,3 @@ jobs:
     - name: Cleanup
       if: always()
       run: make down
-
-  create_pull_request:
-    needs: test
-    runs-on: ubuntu-latest
-    if: success()  # Only run if the "test" job succeeds
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Create Pull Request
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        BRANCH_NAME=$(echo $GITHUB_REF | sed 's/refs\/heads\///')
-        if [[ "$BRANCH_NAME" == "dev" ]]; then
-          echo "Creating a pull request to merge dev into main"
-          gh auth login --with-token <<< "$GITHUB_TOKEN"
-          gh pr create --base main --head dev --title "Auto Pull Request: dev to main" --body "This pull request was created automatically by the GitHub Actions workflow after successful testing."
-        else
-          echo "No pull request needed for $BRANCH_NAME"
-        fi
