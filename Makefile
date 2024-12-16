@@ -57,7 +57,7 @@ start: build up logs
 all: build up
 
 ## Test connection to MDDS
-test: up
+test-connection: 
 	@echo "Waiting for service to start..."
 	@sleep 10
 	@echo "Testing connection..."
@@ -73,3 +73,5 @@ test: up
 		rm /tmp/status.txt; \
 		exit 1; \
 	fi
+
+test: build up test-connection down

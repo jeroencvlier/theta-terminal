@@ -8,3 +8,6 @@ services:
       - THETADATAUSERNAME
       - THETADATAPASSWORD
       - THETATERMINALID
+    ports:
+      - "25510:25510"
+      - "25511:25511"
