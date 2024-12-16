@@ -18,21 +18,8 @@ jobs:
         THETADATAUSERNAME: ${{ secrets.THETADATAUSERNAME }}
         THETADATAPASSWORD: ${{ secrets.THETADATAPASSWORD }}
         THETATERMINALID: ${{ secrets.THETATERMINALID }}
-
       run: |
         make build
-        # Wait for container with max 10 attempts
-        count=0
-        until docker compose ps | grep "Up" || [ $count -eq 10 ]; do
-          echo "Waiting for container... Attempt $((count+1))/10"
-          sleep 10
-          count=$((count+1))
-        done
-        if [ $count -eq 10 ]; then
-          echo "Container failed to start after 10 attempts"
-          docker compose logs
-          exit 1
-        fi
         make test
         
     - name: Check logs on failure
