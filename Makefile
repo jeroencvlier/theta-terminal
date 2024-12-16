@@ -51,7 +51,7 @@ clean:
 	docker compose down --rmi all --volumes --remove-orphans
 
 ## Build, start and show logs
-start: build up logs
+start: build up logs down
 
 ## Build and start containers
 all: build up
