@@ -1,7 +1,10 @@
 services:
   - name: theta-terminal
-    type: private
-    env: docker
+    type: pserv
+    runtime: docker
+    plan: starter
+    region: ohio
+    branch: main
     dockerfilePath: Dockerfile
     envVars:
       - key: THETADATAUSERNAME
@@ -13,4 +16,3 @@ services:
     ports:
       - 25510
       - 25511
-    healthCheckEnabled: false
