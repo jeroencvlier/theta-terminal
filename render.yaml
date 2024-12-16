@@ -13,6 +13,5 @@ services:
     ports:
       - 25510
       - 25511
-    healthCheckPath: /v2/system/mdds/status
-    healthCheckProtocol: http
+    healthCheckProtocol: tcp
     healthCheckPort: 25510
