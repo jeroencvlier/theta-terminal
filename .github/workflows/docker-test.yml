@@ -1,4 +1,4 @@
-name: Docker Build and Test
+name: Docker Build, Test, and Auto-Merge
 
 on:
   push:
@@ -29,3 +29,29 @@ jobs:
     - name: Cleanup
       if: always()
       run: make down
+
+  merge:
+    needs: test
+    runs-on: ubuntu-latest
+    if: success()  # Only run if the "test" job succeeds
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Merge pull request
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "Attempting to merge pull request..."
+        BRANCH_NAME=$(echo $GITHUB_REF | sed 's/refs\/heads\///')
+        if [[ "$BRANCH_NAME" != "main" && "$BRANCH_NAME" != "dev" ]]; then
+          echo "Merging $BRANCH_NAME into main"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git pull origin main
+          git merge --no-ff "$BRANCH_NAME" -m "Automated merge from $BRANCH_NAME to main"
+          git push origin main
+        else
+          echo "No merge needed for main or dev branches"
+        fi
