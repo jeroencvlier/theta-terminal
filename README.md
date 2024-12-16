@@ -1,6 +1,6 @@
 # Theta Terminal Docker
 
-This repository contains the Docker configuration for running Theta Terminal.
+This repository contains the Docker configuration for running Theta Terminal associated with [ThetaData](https://thetadata.com/).
 
 ## Prerequisites
 
