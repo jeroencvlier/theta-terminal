@@ -1,0 +1,15 @@
+services:
+  - name: theta-terminal
+    type: web  # You can use "web" or "worker" depending on the service type
+    env: docker  # Indicates a Docker service
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: THETADATAUSERNAME
+        sync: true
+      - key: THETADATAPASSWORD
+        sync: true
+      - key: THETATERMINALID
+        sync: true
+    ports:
+      - 25510
+      - 25511
