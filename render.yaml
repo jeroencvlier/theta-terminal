@@ -13,4 +13,6 @@ services:
     ports:
       - 25510
       - 25511
-    healthCheckPath: "/nonexistent"  # Redirect Render's health checks to a non-blocking endpoint
+    healthCheckPath: /nonexistent  # Redirect Render's health check to an unused path
+    healthCheckProtocol: tcp       # Use TCP instead of HTTP for the health check
+    healthCheckPort: 25510         # Target port for health check
