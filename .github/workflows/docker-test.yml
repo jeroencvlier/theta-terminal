@@ -2,13 +2,13 @@ name: Docker Build, Test, and Auto-Merge
 
 on:
   push:
-    branches: [ dev, main ]
+    branches: [ dev ]
   pull_request:
-    branches: [ dev, main ]
+    branches: [ dev ]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     steps:
     - uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
 
   merge:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: success()  # Only run if the "test" job succeeds
     steps:
     - name: Checkout code
