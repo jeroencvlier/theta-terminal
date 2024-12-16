@@ -13,6 +13,10 @@ RUN apk add --no-cache curl && \
 COPY configs/ /root/ThetaData/ThetaTerminal/
 COPY ThetaTerminal.jar .
 
+# Expose the required ports
+EXPOSE 25510
+EXPOSE 25511
+
 # Set the entry point for the application
 ENTRYPOINT java \
     -XX:+UseContainerSupport \
