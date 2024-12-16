@@ -18,8 +18,14 @@ jobs:
         THETADATAUSERNAME: ${{ secrets.THETADATAUSERNAME }}
         THETADATAPASSWORD: ${{ secrets.THETADATAPASSWORD }}
         THETATERMINALID: ${{ secrets.THETATERMINALID }}
+
       run: |
         make build
+        # Wait for container to be healthy
+        until docker compose ps | grep "Up"; do
+          echo "Waiting for container..."
+          sleep 5
+        done
         make test
         
     - name: Check logs on failure
