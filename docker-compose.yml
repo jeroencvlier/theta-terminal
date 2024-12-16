@@ -4,6 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile
     image: theta-terminal:latest
+    environment:
+      - THETADATAUSERNAME
+      - THETADATAPASSWORD
+      - THETATERMINALID
     ports:
       - "25510:25510"
       - "25511:25511"
