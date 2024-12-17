@@ -15,5 +15,6 @@ services:
       - key: THETATERMINALID
         sync: true
       - key: PORT
-        value: 25510
+        sync: true
+    healthCheckPath: /v2/system/mdds/status
 
