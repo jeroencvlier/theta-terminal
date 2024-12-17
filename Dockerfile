@@ -14,8 +14,8 @@ COPY configs/ /root/ThetaData/ThetaTerminal/
 COPY ThetaTerminal.jar .
 
 # Expose the required ports
-EXPOSE 25510
-EXPOSE 25511
+EXPOSE 25510 25520 11000 10000 25511 25521 11001 10001
+    
 
 # Set the entry point for the application
 ENTRYPOINT java \
