@@ -16,6 +16,11 @@ COPY ThetaTerminal.jar .
 # Expose the required ports
 EXPOSE 25510
 EXPOSE 25511
+EXPOSE 40000
+EXPOSE 40001
+EXPOSE 41000
+EXPOSE 41001
+
 
 # Set the entry point for the application
 ENTRYPOINT java \
