@@ -74,4 +74,4 @@ test-connection:
 		exit 1; \
 	fi
 
-test: build up test-connection down
+test: up test-connection 
