@@ -7,14 +7,10 @@ services:
     branch: main
     dockerfilePath: Dockerfile
     autoDeploy: true
-    envVars:
-      - key: THETADATAUSERNAME
-        sync: true
-      - key: THETADATAPASSWORD
-        sync: true
-      - key: THETATERMINALID
-        sync: true
-      - key: PORT
-        sync: true
-    healthCheckPath: /v2/system/mdds/status
-
+    # envVars:
+    #   - key: THETADATAUSERNAME
+    #     sync: true
+    #   - key: THETADATAPASSWORD
+    #     sync: true
+    #   - key: THETATERMINALID
+    #     sync: true
