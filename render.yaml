@@ -16,6 +16,3 @@ services:
     ports:
       - 25510
       - 25511
-    hostport:
-      - 10100
-      - 11100
