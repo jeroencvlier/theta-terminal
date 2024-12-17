@@ -19,6 +19,6 @@ services:
     ports:
       - 25510
       - 25511
-    healthCheckCommand: ["curl", "-fI", "http://theta-terminal-lmmt:25510/v2/system/mdds/status"]
+    healthCheckPath: /v2/system/mdds/status
 
 
