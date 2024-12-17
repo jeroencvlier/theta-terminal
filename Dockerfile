@@ -17,15 +17,11 @@ COPY ThetaTerminal.jar .
 EXPOSE 25510 25511
 
 
-ENTRYPOINT sh -c "apk add --no-cache net-tools && \
-    java \
+# Set the entry point for the application
+ENTRYPOINT java \
     -XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=75.0 \
     -XX:InitialRAMPercentage=50.0 \
     -Xmx512m \
     -XX:TieredStopAtLevel=1 \
-    -jar /app/ThetaTerminal.jar $THETADATAUSERNAME $THETADATAPASSWORD $THETATERMINALID & \
-    sleep 5 && \
-    echo '==== Network Bindings After Starting App ====' && \
-    netstat -tuln && \
-    wait"
+    -jar /app/ThetaTerminal.jar $THETADATAUSERNAME $THETADATAPASSWORD $THETATERMINALID
