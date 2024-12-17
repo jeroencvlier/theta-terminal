@@ -7,10 +7,5 @@ services:
     branch: main
     dockerfilePath: Dockerfile
     autoDeploy: true
-    # envVars:
-    #   - key: THETADATAUSERNAME
-    #     sync: true
-    #   - key: THETADATAPASSWORD
-    #     sync: true
-    #   - key: THETATERMINALID
-    #     sync: true
+    envVars:
+      - fromGroup: theta-terminal-envs
