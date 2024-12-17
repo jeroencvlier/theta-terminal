@@ -13,9 +13,9 @@ services:
         sync: true
       - key: THETATERMINALID
         sync: true
+      - key: PORT
+        value: 40000
     ports:
       - 25510
       - 25511
-    hostport:
-      - 10100
-      - 11100
+      - 40000
