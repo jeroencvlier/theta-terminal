@@ -65,3 +65,5 @@ If you encounter issues:
 1. Check your environment variables in the `.env` file
 2. Ensure all configuration files are present in the `configs/` directory
 3. View logs using `make logs` to identify any startup issues
+
+## License
