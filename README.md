@@ -57,7 +57,7 @@ make start    # Build, start and show logs
 |----------|-------------|
 | THETADATAUSERNAME | Your Theta Data username |
 | THETADATAPASSWORD | Your Theta Data password |
-| THETATERMINALID | Terminal ID (0 = Deployment, 1 = Development) |
+| THETATERMINALID   | Terminal ID (0 = Deployment, 1 = Development) |
 
 ## Troubleshooting
 
