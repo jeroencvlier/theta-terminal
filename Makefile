@@ -34,6 +34,8 @@ build:
 ## Start containers in detached mode
 up:
 	docker compose up -d
+	
+
 
 ## Stop and remove containers
 down:
