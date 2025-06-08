@@ -26,8 +26,10 @@
 #     -XX:TieredStopAtLevel=1 \
 #     -jar /app/ThetaTerminal.jar $THETADATAUSERNAME $THETADATAPASSWORD $THETATERMINALID
 
+# This base image ALREADY includes Java 21 JRE
 FROM eclipse-temurin:21-jre-alpine
 
+# Alpine uses 'apk' not 'apt' - but Java 21 is already included above
 RUN apk add --no-cache nginx curl && \
     mkdir -p /root/ThetaData/ThetaTerminal
 

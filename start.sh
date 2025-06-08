@@ -38,11 +38,29 @@ http {
     server {
         listen 25500;
         
-        # Handle ALL HEAD requests (Render health checks) at nginx level
-        if (\$request_method = HEAD) {
-            return 200;
+        # Dedicated health check endpoint for Render
+        location = /health {
+            return 200 "OK";
+            access_log off;
         }
         
+        # Handle HEAD requests to root (Render's TCP port detection)
+        location = / {
+            if (\$request_method = HEAD) {
+                return 200;
+            }
+            # Forward other requests to terminal
+            proxy_pass http://127.0.0.1:${TERMINAL_PORT};
+            proxy_set_header X-Real-IP 127.0.0.1;
+            proxy_set_header X-Forwarded-For 127.0.0.1;
+            proxy_set_header Host \$host;
+            
+            # Rewrite Next-Page headers
+            proxy_hide_header Next-Page;
+            add_header Next-Page \$rewritten_next_page always;
+        }
+        
+        # Handle all API requests
         location / {
             proxy_pass http://127.0.0.1:${TERMINAL_PORT};
             proxy_set_header X-Real-IP 127.0.0.1;
