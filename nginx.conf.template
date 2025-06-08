@@ -80,11 +80,11 @@ http {
             access_log off;
         }
 
-        # Proxy ALL requests to Theta Terminal (including /v2 paths)
-        # This MUST preserve the full path including /v2
-        location ~ ^/(.*)$ {
-            # Preserve the COMPLETE original path including /v2
-            proxy_pass http://theta_terminal/$1$is_args$args;
+        # Proxy ALL other requests to Theta Terminal (including /v2 paths)
+        # This preserves the complete original path including /v2
+        location / {
+            # Preserve the COMPLETE original request URI
+            proxy_pass http://theta_terminal$request_uri;
             
             # CRITICAL: Set headers to ensure single IP perspective for terminal
             # This solves the IP locking issue

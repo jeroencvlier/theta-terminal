@@ -53,16 +53,7 @@ trap cleanup TERM INT
 
 # Start the Java Theta Terminal on its default port with optimized memory settings
 echo "Starting Theta Terminal (Java) with ID $THETATERMINALID on port $THETA_TERMINAL_PORT..."
-java \
-    -XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=60.0 \
-    -XX:InitialRAMPercentage=30.0 \
-    -Xmx400m \
-    -XX:+UseG1GC \
-    -XX:G1HeapRegionSize=16m \
-    -XX:+DisableExplicitGC \
-    -XX:TieredStopAtLevel=1 \
-    -jar /app/ThetaTerminal.jar $THETADATAUSERNAME $THETADATAPASSWORD $THETATERMINALID &
+java -jar /app/ThetaTerminal.jar $THETADATAUSERNAME $THETADATAPASSWORD $THETATERMINALID &
 
 JAVA_PID=$!
 echo "Theta Terminal started with PID: $JAVA_PID"
