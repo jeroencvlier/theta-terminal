@@ -13,11 +13,13 @@ http {
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
 
-    # Map to rewrite Next-Page headers with BASE_URL
+    # Map to rewrite Next-Page headers with BASE_URL (handles BASE_URL with paths)
     map $upstream_http_next_page $next_page_rewritten {
         default $upstream_http_next_page;
         "~^http://127\.0\.0\.1:${THETA_TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}$path";
         "~^http://localhost:${THETA_TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}$path";
+        "~^http://127\.0\.0\.1:${THETA_TERMINAL_PORT}$" "${BASE_URL}";
+        "~^http://localhost:${THETA_TERMINAL_PORT}$" "${BASE_URL}";
     }
 
     # Logging format

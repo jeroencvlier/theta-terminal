@@ -25,6 +25,8 @@
 #     -Xmx512m \
 #     -XX:TieredStopAtLevel=1 \
 #     -jar /app/ThetaTerminal.jar $THETADATAUSERNAME $THETADATAPASSWORD $THETATERMINALID
+
+
 FROM eclipse-temurin:21-jre-alpine
 
 # Install nginx and sed for config modification
@@ -51,6 +53,7 @@ COPY start.sh .
 RUN chmod +x start.sh
 
 # Expose the proxy port (25500) and health check port (8080)
+# Note: If your BASE_URL uses :25500, make sure this matches
 EXPOSE 25500 8080
 
 # Use the start script as entry point
