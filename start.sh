@@ -35,28 +35,19 @@ http {
     server {
         listen 25500;
         
-        # Health check endpoint
+        # Health check endpoint for Render
         location = /health {
             return 200 "OK";
             access_log off;
         }
-        
-        # Block HEAD requests to root and return 200
+
+        # Handle root path - block HEAD requests
         location = / {
-            limit_except GET POST PUT DELETE PATCH {
-                return 200 "OK";
-            }
-            # If we get here, it's not a HEAD request
-            proxy_pass http://127.0.0.1:${TERMINAL_PORT};
-            proxy_set_header X-Real-IP 127.0.0.1;
-            proxy_set_header X-Forwarded-For 127.0.0.1;
-            proxy_set_header Host \$host;
-            proxy_hide_header Next-Page;
-            add_header Next-Page \$rewritten_next_page always;
+            return 200 "OK";
         }
         
-        # All API endpoints (everything else)
-        location ~ ^/.+ {
+        # All other requests (API calls)
+        location / {
             proxy_pass http://127.0.0.1:${TERMINAL_PORT};
             proxy_set_header X-Real-IP 127.0.0.1;
             proxy_set_header X-Forwarded-For 127.0.0.1;
