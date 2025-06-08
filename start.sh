@@ -23,11 +23,16 @@ events {
     worker_connections 1024;
 }
 http {
-    # URL rewriting for Next-Page headers
+    # URL rewriting for Next-Page headers - strip duplicate /v2 prefix
     map \$upstream_http_next_page \$rewritten_next_page {
         default \$upstream_http_next_page;
-        "~^http://127\.0\.0\.1:${TERMINAL_PORT}(?<path>.*)$" "${BASE_URL}\$path";
-        "~^http://localhost:${TERMINAL_PORT}(?<path>.*)$" "${BASE_URL}\$path";
+        # Terminal returns: http://127.0.0.1:25510/v2/page/1
+        # We want: http://theta-terminal-ktbl:25500/v2/page/1 (not /v2/v2/page/1)
+        "~^http://127\.0\.0\.1:${TERMINAL_PORT}/v2(?<path>.*)$" "${BASE_URL}\$path";
+        "~^http://localhost:${TERMINAL_PORT}/v2(?<path>.*)$" "${BASE_URL}\$path";
+        # Fallback for paths without /v2 prefix
+        "~^http://127\.0\.0\.1:${TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}\$path";
+        "~^http://localhost:${TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}\$path";
     }
 
     server {
