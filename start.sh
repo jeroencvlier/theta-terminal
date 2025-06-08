@@ -152,8 +152,10 @@ while kill -0 $JAVA_PID 2>/dev/null && kill -0 $NGINX_PID 2>/dev/null; do
     # Log memory usage every 5 minutes
     if [ $(($(date +%s) % 300)) -eq 0 ]; then
         echo "Memory usage: $(free -h | head -2)"
-        echo "Java process status: $(ps -p $JAVA_PID -o pid,ppid,cmd,%mem,%cpu 2>/dev/null || echo 'Java process not found')"
-        echo "Nginx process status: $(ps -p $NGINX_PID -o pid,ppid,cmd,%mem,%cpu 2>/dev/null || echo 'Nginx process not found')"
+        echo "Java process status: $(ps -p $JAVA_PID -o pid,ppid,cmd,%mem,%cpu --no-headers 2>/dev/null || echo 'Java process not found')"
+        echo "Nginx process status: $(ps aux | grep '[n]ginx' | head -1 || echo 'Nginx process not found')"
+        echo "All Java processes: $(ps aux | grep '[j]ava' | wc -l)"
+        echo "All Nginx processes: $(ps aux | grep '[n]ginx' | wc -l)"
     fi
     sleep 10
 done
@@ -161,14 +163,14 @@ done
 # Check which process stopped
 if ! kill -0 $JAVA_PID 2>/dev/null; then
     echo "ERROR: Java Theta Terminal process (PID $JAVA_PID) has stopped!"
-    wait $JAVA_PID
+    wait $JAVA_PID 2>/dev/null
     java_exit_code=$?
     echo "Java process exit code: $java_exit_code"
 fi
 
 if ! kill -0 $NGINX_PID 2>/dev/null; then
     echo "ERROR: Nginx process (PID $NGINX_PID) has stopped!"
-    wait $NGINX_PID  
+    wait $NGINX_PID 2>/dev/null
     nginx_exit_code=$?
     echo "Nginx process exit code: $nginx_exit_code"
 fi
