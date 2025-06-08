@@ -13,16 +13,17 @@ http {
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
 
-    # Map to rewrite Next-Page headers - add /v2 prefix to terminal responses
+    # Map to rewrite Next-Page headers - simple hostname/port replacement only
     map $upstream_http_next_page $next_page_rewritten {
         default $upstream_http_next_page;
-        # Terminal returns: http://127.0.0.1:25510/page/2
-        # We want: http://theta-terminal-ktbl:25500/v2/page/2
-        "~^http://127\.0\.0\.1:${THETA_TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}$path";
-        "~^http://localhost:${THETA_TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}$path";
-        # Handle URLs without paths
-        "~^http://127\.0\.0\.1:${THETA_TERMINAL_PORT}$" "${BASE_URL}";
-        "~^http://localhost:${THETA_TERMINAL_PORT}$" "${BASE_URL}";
+        
+        # Replace internal URLs with external BASE_URL, preserving the exact path
+        "~^http://127\.0\.0\.1:${THETA_TERMINAL_PORT}(?<path>.*)$" "http://theta-terminal-ktbl:25500$path";
+        "~^http://localhost:${THETA_TERMINAL_PORT}(?<path>.*)$" "http://theta-terminal-ktbl:25500$path";
+        
+        # Handle case where terminal returns just the domain without path
+        "~^http://127\.0\.0\.1:${THETA_TERMINAL_PORT}$" "http://theta-terminal-ktbl:25500";
+        "~^http://localhost:${THETA_TERMINAL_PORT}$" "http://theta-terminal-ktbl:25500";
     }
 
     # Logging format
@@ -79,12 +80,14 @@ http {
             access_log off;
         }
 
-        # Handle requests with /v2 prefix - strip it before forwarding to terminal
-        location ~ ^/v2(?<api_path>/.*)$ {
-            # Forward to terminal without the /v2 prefix
-            proxy_pass http://theta_terminal$api_path$is_args$args;
+        # Proxy ALL requests to Theta Terminal (including /v2 paths)
+        # This MUST preserve the full path including /v2
+        location ~ ^/(.*)$ {
+            # Preserve the COMPLETE original path including /v2
+            proxy_pass http://theta_terminal/$1$is_args$args;
             
             # CRITICAL: Set headers to ensure single IP perspective for terminal
+            # This solves the IP locking issue
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP 127.0.0.1;
             proxy_set_header X-Forwarded-For 127.0.0.1;
@@ -118,9 +121,6 @@ http {
             proxy_pass_header Access-Control-Allow-Methods;
             proxy_pass_header Access-Control-Allow-Headers;
         }
-
-        # Handle requests without /v2 prefix (direct API calls)
-        location / {
             # Preserve original request
             proxy_pass http://theta_terminal;
             
