@@ -9,13 +9,77 @@ BASE_URL=${BASE_URL:-"http://theta-terminal-ktbl:25500"}
 
 # Set terminal port based on ID
 if [ "$THETATERMINALID" = "0" ]; then
-    TERMINAL_PORT=25510
+    TERMINAL_PORT=9000  # Completely different internal port
 elif [ "$THETATERMINALID" = "1" ]; then
-    TERMINAL_PORT=25511
+    TERMINAL_PORT=9001  # Completely different internal port
 else
     echo "ERROR: THETATERMINALID must be 0 or 1"
     exit 1
 fi
+
+# Modify terminal config to use non-standard internal port
+echo "Changing terminal to use internal port $TERMINAL_PORT..."
+if [ "$THETATERMINALID" = "0" ]; then
+    sed -i "s/HTTP_PORT=25510/HTTP_PORT=$TERMINAL_PORT/" /root/ThetaData/ThetaTerminal/config_0.properties
+else
+    sed -i "s/HTTP_PORT=25511/HTTP_PORT=$TERMINAL_PORT/" /root/ThetaData/ThetaTerminal/config_1.properties
+fi
+
+# Create nginx config with URL rewriting
+cat > /etc/nginx/nginx.conf << EOF
+events {
+    worker_connections 1024;
+}
+http {
+    # URL rewriting for Next-Page headers
+    map \$upstream_http_next_page \$rewritten_next_page {
+        default \$upstream_http_next_page;
+        "~^http://127\.0\.0\.1:${TERMINAL_PORT}/v2(?<path>.*)$" "${BASE_URL}\$path";
+        "~^http://localhost:${TERMINAL_PORT}/v2(?<path>.*)$" "${BASE_URL}\$path";
+        "~^http://127\.0\.0\.1:${TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}\$path";
+        "~^http://localhost:${TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}\$path";
+    }
+
+    server {
+        listen 25500;
+        
+        # Test endpoint to verify nginx is working
+        location = /nginx-test {
+            return 200 "NGINX IS WORKING! Terminal on port ${TERMINAL_PORT}";
+            access_log off;
+        }
+        
+        # Health check
+        location = /health {
+            return 200 "OK";
+            access_log off;
+        }
+        
+        # Handle ALL requests to root (including HEAD)
+        location = / {
+            return 200 "ROOT REQUEST BLOCKED BY NGINX";
+            access_log off;
+        }
+        
+        # API requests
+        location / {
+            proxy_pass http://127.0.0.1:${TERMINAL_PORT};
+            proxy_set_header X-Real-IP 127.0.0.1;
+            proxy_set_header X-Forwarded-For 127.0.0.1;
+            proxy_set_header Host \$host;
+            proxy_hide_header Next-Page;
+            add_header Next-Page \$rewritten_next_page always;
+        }
+    }
+    
+    server {
+        listen 8080;
+        location /health {
+            return 200 "OK - Terminal ID: ${THETATERMINALID}, Port: ${TERMINAL_PORT}";
+        }
+    }
+}
+EOF
 
 # Create nginx config with URL rewriting
 cat > /etc/nginx/nginx.conf << EOF
