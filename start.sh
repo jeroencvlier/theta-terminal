@@ -7,11 +7,17 @@ THETADATAPASSWORD=${THETADATAPASSWORD:-""}
 THETATERMINALID=${THETATERMINALID:-"0"}
 BASE_URL=${BASE_URL:-"http://theta-terminal-ktbl:25500"}
 
+# Show current config to verify changes
+echo "Current terminal config:"
+cat /root/ThetaData/ThetaTerminal/config_${THETATERMINALID}.properties | grep HTTP_PORT
+
 # Set terminal port based on ID
 if [ "$THETATERMINALID" = "0" ]; then
     TERMINAL_PORT=9000  # Completely different internal port
+    CONFIG_FILE="/root/ThetaData/ThetaTerminal/config_0.properties"
 elif [ "$THETATERMINALID" = "1" ]; then
-    TERMINAL_PORT=9001  # Completely different internal port
+    TERMINAL_PORT=9001  # Completely different internal port  
+    CONFIG_FILE="/root/ThetaData/ThetaTerminal/config_1.properties"
 else
     echo "ERROR: THETATERMINALID must be 0 or 1"
     exit 1
@@ -19,11 +25,22 @@ fi
 
 # Modify terminal config to use non-standard internal port
 echo "Changing terminal to use internal port $TERMINAL_PORT..."
-if [ "$THETATERMINALID" = "0" ]; then
-    sed -i "s/HTTP_PORT=25510/HTTP_PORT=$TERMINAL_PORT/" /root/ThetaData/ThetaTerminal/config_0.properties
-else
-    sed -i "s/HTTP_PORT=25511/HTTP_PORT=$TERMINAL_PORT/" /root/ThetaData/ThetaTerminal/config_1.properties
-fi
+sed -i "s/HTTP_PORT=25510/HTTP_PORT=$TERMINAL_PORT/" "$CONFIG_FILE"
+sed -i "s/HTTP_PORT=25511/HTTP_PORT=$TERMINAL_PORT/" "$CONFIG_FILE"
+
+# Also change WebSocket port to avoid conflicts
+WS_PORT=$((TERMINAL_PORT + 20))
+sed -i "s/WS_PORT=25520/WS_PORT=$WS_PORT/" "$CONFIG_FILE"
+sed -i "s/WS_PORT=25521/WS_PORT=$WS_PORT/" "$CONFIG_FILE"
+
+# Change other ports too
+sed -i "s/CLIENT_PORT=11000/CLIENT_PORT=9100/" "$CONFIG_FILE"
+sed -i "s/CLIENT_PORT=11001/CLIENT_PORT=9101/" "$CONFIG_FILE"  
+sed -i "s/STREAM_PORT=10000/STREAM_PORT=9200/" "$CONFIG_FILE"
+sed -i "s/STREAM_PORT=10001/STREAM_PORT=9201/" "$CONFIG_FILE"
+
+echo "Modified config:"
+cat "$CONFIG_FILE" | grep -E "(HTTP_PORT|WS_PORT|CLIENT_PORT|STREAM_PORT)"
 
 # Create nginx config with URL rewriting
 cat > /etc/nginx/nginx.conf << EOF
