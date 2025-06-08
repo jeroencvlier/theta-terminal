@@ -35,6 +35,12 @@ http {
         "~^http://localhost:${TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}\$path";
     }
 
+    # Map request method to determine if we should proxy
+    map \$request_method \$should_proxy {
+        default 1;
+        HEAD 0;
+    }
+
     server {
         listen 25500;
         
@@ -44,24 +50,14 @@ http {
             access_log off;
         }
         
-        # Handle HEAD requests to root (Render's TCP port detection)
-        location = / {
-            if (\$request_method = HEAD) {
+        # Handle all requests
+        location / {
+            # If it's a HEAD request, return 200 immediately
+            if (\$should_proxy = 0) {
                 return 200;
             }
-            # Forward other requests to terminal
-            proxy_pass http://127.0.0.1:${TERMINAL_PORT};
-            proxy_set_header X-Real-IP 127.0.0.1;
-            proxy_set_header X-Forwarded-For 127.0.0.1;
-            proxy_set_header Host \$host;
             
-            # Rewrite Next-Page headers
-            proxy_hide_header Next-Page;
-            add_header Next-Page \$rewritten_next_page always;
-        }
-        
-        # Handle all API requests
-        location / {
+            # Otherwise proxy to terminal
             proxy_pass http://127.0.0.1:${TERMINAL_PORT};
             proxy_set_header X-Real-IP 127.0.0.1;
             proxy_set_header X-Forwarded-For 127.0.0.1;
