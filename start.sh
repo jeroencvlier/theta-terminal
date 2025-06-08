@@ -23,51 +23,49 @@ events {
     worker_connections 1024;
 }
 http {
-    # URL rewriting for Next-Page headers - strip duplicate /v2 prefix
+    # URL rewriting for Next-Page headers
     map \$upstream_http_next_page \$rewritten_next_page {
         default \$upstream_http_next_page;
-        # Terminal returns: http://127.0.0.1:25510/v2/page/1
-        # We want: http://theta-terminal-ktbl:25500/v2/page/1 (not /v2/v2/page/1)
         "~^http://127\.0\.0\.1:${TERMINAL_PORT}/v2(?<path>.*)$" "${BASE_URL}\$path";
         "~^http://localhost:${TERMINAL_PORT}/v2(?<path>.*)$" "${BASE_URL}\$path";
-        # Fallback for paths without /v2 prefix
         "~^http://127\.0\.0\.1:${TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}\$path";
         "~^http://localhost:${TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}\$path";
-    }
-
-    # Map request method to determine if we should proxy
-    map \$request_method \$should_proxy {
-        default 1;
-        HEAD 0;
     }
 
     server {
         listen 25500;
         
-        # Dedicated health check endpoint for Render
+        # Health check endpoint
         location = /health {
             return 200 "OK";
             access_log off;
         }
         
-        # Handle all requests
-        location / {
-            # If it's a HEAD request, return 200 immediately
-            if (\$should_proxy = 0) {
-                return 200;
+        # Block HEAD requests to root and return 200
+        location = / {
+            limit_except GET POST PUT DELETE PATCH {
+                return 200 "OK";
             }
-            
-            # Otherwise proxy to terminal
+            # If we get here, it's not a HEAD request
             proxy_pass http://127.0.0.1:${TERMINAL_PORT};
             proxy_set_header X-Real-IP 127.0.0.1;
             proxy_set_header X-Forwarded-For 127.0.0.1;
             proxy_set_header Host \$host;
-            
-            # Rewrite Next-Page headers
+            proxy_hide_header Next-Page;
+            add_header Next-Page \$rewritten_next_page always;
+        }
+        
+        # All API endpoints (everything else)
+        location ~ ^/.+ {
+            proxy_pass http://127.0.0.1:${TERMINAL_PORT};
+            proxy_set_header X-Real-IP 127.0.0.1;
+            proxy_set_header X-Forwarded-For 127.0.0.1;
+            proxy_set_header Host \$host;
             proxy_hide_header Next-Page;
             add_header Next-Page \$rewritten_next_page always;
         }
     }
+    
     server {
         listen 8080;
         location /health {
