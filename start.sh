@@ -32,34 +32,59 @@ http {
         "~^http://localhost:${TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}\$path";
     }
 
-    # Log all requests for debugging
-    log_format debug '\$remote_addr - [\$time_local] "\$request_method \$request_uri" \$status';
-    access_log /var/log/nginx/access.log debug;
-
     server {
         listen 25500;
         
-        # Log what we're receiving
-        location / {
-            # Always return 200 for HEAD requests regardless of path
-            if (\$request_method = HEAD) {
-                access_log /var/log/nginx/head_requests.log debug;
-                return 200 "HEAD OK";
-            }
-            
-            # Health check endpoint
-            if (\$request_uri = "/health") {
-                return 200 "Health OK";
-            }
-            
-            # All other requests go to terminal
-            access_log /var/log/nginx/proxy_requests.log debug;
+        # Handle health checks and root requests to avoid terminal errors
+        location = / {
+            return 200 "Theta Terminal Proxy Active\\n";
+            add_header Content-Type text/plain;
+        }
+        
+        location = /favicon.ico {
+            return 204;
+            access_log off;
+        }
+
+        location = /health {
+            return 200 "OK";
+            access_log off;
+        }
+
+        # Proxy ALL API requests to Theta Terminal (preserves complete path including /v2)
+        location /v2/ {
             proxy_pass http://127.0.0.1:${TERMINAL_PORT};
+            proxy_set_header Host \$host;
             proxy_set_header X-Real-IP 127.0.0.1;
             proxy_set_header X-Forwarded-For 127.0.0.1;
-            proxy_set_header Host \$host;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 120s;
+            proxy_read_timeout 120s;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+            proxy_buffering off;
+            proxy_cache off;
+            proxy_redirect off;
             proxy_hide_header Next-Page;
             add_header Next-Page \$rewritten_next_page always;
+            proxy_pass_header Content-Type;
+            proxy_pass_header Content-Length;
+            proxy_pass_header Access-Control-Allow-Origin;
+            proxy_pass_header Access-Control-Allow-Methods;
+            proxy_pass_header Access-Control-Allow-Headers;
+        }
+
+        # Proxy other API requests (non-v2)
+        location /system/ {
+            proxy_pass http://127.0.0.1:${TERMINAL_PORT};
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP 127.0.0.1;
+            proxy_set_header X-Forwarded-For 127.0.0.1;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_connect_timeout 10s;
+            proxy_send_timeout 10s;
+            proxy_read_timeout 10s;
         }
     }
     
@@ -67,15 +92,6 @@ http {
         listen 8080;
         location /health {
             return 200 "OK - Terminal ID: ${THETATERMINALID}, Port: ${TERMINAL_PORT}";
-        }
-        
-        # Debug endpoint to check nginx logs
-        location /debug-head {
-            return 200 "Check /var/log/nginx/head_requests.log";
-        }
-        
-        location /debug-proxy {
-            return 200 "Check /var/log/nginx/proxy_requests.log";
         }
     }
 }
