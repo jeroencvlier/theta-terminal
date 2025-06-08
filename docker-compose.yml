@@ -1,13 +1,73 @@
+# services:
+#   theta-terminal:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     image: theta-terminal:latest
+#     environment:
+#       - THETADATAUSERNAME
+#       - THETADATAPASSWORD
+#       - THETATERMINALID
+#     ports:
+#       - "25510:25510"
+#       - "25511:25511"
+
+version: '3.8'
+
 services:
-  theta-terminal:
+  # Theta Terminal ID 0 (Production)
+  theta-terminal-prod:
     build:
       context: .
       dockerfile: Dockerfile
     image: theta-terminal:latest
-    environment:
-      - THETADATAUSERNAME
-      - THETADATAPASSWORD
-      - THETATERMINALID
+    env_file:
+      - .env
+    container_name: theta-terminal-prod
     ports:
-      - "25510:25510"
-      - "25511:25511"
+      - "25510:25510"  # Nginx proxy (external interface)
+      - "8080:8080"    # Health check
+    volumes:
+      - theta-data-prod:/root/ThetaData
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - theta-network
+
+  # Theta Terminal ID 1 (Staging) - Optional for testing
+  theta-terminal-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: theta-terminal:latest
+    env_file:
+      - .env
+    container_name: theta-terminal-staging
+    ports:
+      - "25512:25510"  # Different external port, nginx still proxies internally
+      - "8081:8080"    # Different health check port
+    volumes:
+      - theta-data-staging:/root/ThetaData
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - theta-network
+    profiles:
+      - staging  # Only start with: docker-compose --profile staging up
+volumes:
+  theta-data-prod:
+  theta-data-staging:
+
+networks:
+  theta-network:
+    driver: bridge
