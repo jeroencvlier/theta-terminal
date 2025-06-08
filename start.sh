@@ -32,22 +32,28 @@ http {
         "~^http://localhost:${TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}\$path";
     }
 
+    # Log all requests for debugging
+    log_format debug '\$remote_addr - [\$time_local] "\$request_method \$request_uri" \$status';
+    access_log /var/log/nginx/access.log debug;
+
     server {
         listen 25500;
         
-        # Health check endpoint for Render
-        location = /health {
-            return 200 "OK";
-            access_log off;
-        }
-
-        # Handle root path - block HEAD requests
-        location = / {
-            return 200 "OK";
-        }
-        
-        # All other requests (API calls)
+        # Log what we're receiving
         location / {
+            # Always return 200 for HEAD requests regardless of path
+            if (\$request_method = HEAD) {
+                access_log /var/log/nginx/head_requests.log debug;
+                return 200 "HEAD OK";
+            }
+            
+            # Health check endpoint
+            if (\$request_uri = "/health") {
+                return 200 "Health OK";
+            }
+            
+            # All other requests go to terminal
+            access_log /var/log/nginx/proxy_requests.log debug;
             proxy_pass http://127.0.0.1:${TERMINAL_PORT};
             proxy_set_header X-Real-IP 127.0.0.1;
             proxy_set_header X-Forwarded-For 127.0.0.1;
@@ -61,6 +67,15 @@ http {
         listen 8080;
         location /health {
             return 200 "OK - Terminal ID: ${THETATERMINALID}, Port: ${TERMINAL_PORT}";
+        }
+        
+        # Debug endpoint to check nginx logs
+        location /debug-head {
+            return 200 "Check /var/log/nginx/head_requests.log";
+        }
+        
+        location /debug-proxy {
+            return 200 "Check /var/log/nginx/proxy_requests.log";
         }
     }
 }
