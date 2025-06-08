@@ -171,6 +171,7 @@ http {
             return 200 "container healthy - proxy on ${NGINX_PORT}, terminal on port ${THETA_TERMINAL_PORT}\n";
             add_header Content-Type text/plain;
         }
+        
 
         # Proxy health check to terminal
         location /terminal-health {
