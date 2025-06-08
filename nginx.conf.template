@@ -44,15 +44,15 @@ http {
         keepalive 32;
     }
 
-    # Main proxy server - always listens on 25510
+    # Main proxy server - listens on the proxy port
     server {
-        listen 25510;
+        listen ${NGINX_PORT};
         server_name _;
 
         # Health check endpoint
         location /nginx-health {
             access_log off;
-            return 200 "nginx proxy healthy - forwarding to port ${THETA_TERMINAL_PORT}\n";
+            return 200 "nginx proxy healthy - listening on ${NGINX_PORT}, forwarding to port ${THETA_TERMINAL_PORT}\n";
             add_header Content-Type text/plain;
         }
 
@@ -101,7 +101,7 @@ http {
         access_log off;
 
         location /health {
-            return 200 "container healthy - terminal on port ${THETA_TERMINAL_PORT}\n";
+            return 200 "container healthy - proxy on ${NGINX_PORT}, terminal on port ${THETA_TERMINAL_PORT}\n";
             add_header Content-Type text/plain;
         }
 
@@ -118,7 +118,7 @@ http {
 
         # Get terminal info
         location /terminal-info {
-            return 200 "Terminal ID: ${THETATERMINALID}, Port: ${THETA_TERMINAL_PORT}\n";
+            return 200 "Terminal ID: ${THETATERMINALID}, Terminal Port: ${THETA_TERMINAL_PORT}, Proxy Port: ${NGINX_PORT}\n";
             add_header Content-Type text/plain;
         }
     }

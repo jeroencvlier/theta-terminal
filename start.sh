@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# Start script for Theta Terminal with dynamic Nginx reverse proxy
-# Handles both terminal ID 0 (port 25510) and ID 1 (port 25511)
+# Simplified start script - no config file modification needed
+# Terminal runs on its default ports, nginx proxies from a different port
 
 echo "Starting Theta Terminal with Nginx Reverse Proxy..."
 
@@ -10,15 +10,17 @@ THETADATAUSERNAME=${THETADATAUSERNAME:-""}
 THETADATAPASSWORD=${THETADATAPASSWORD:-""}
 THETATERMINALID=${THETATERMINALID:-"0"}
 
-# Determine the actual terminal port based on ID
+# Determine the terminal port based on ID (from original config)
 if [ "$THETATERMINALID" = "0" ]; then
-    THETA_TERMINAL_PORT=25510
+    THETA_TERMINAL_PORT=25510  # Production default
     THETA_WS_PORT=25520
-    echo "Using Terminal ID 0 (Production) - HTTP: $THETA_TERMINAL_PORT, WS: $THETA_WS_PORT"
+    NGINX_PORT=25500  # Nginx listens on different port
+    echo "Using Terminal ID 0 (Production) - Terminal: $THETA_TERMINAL_PORT, Proxy: $NGINX_PORT"
 elif [ "$THETATERMINALID" = "1" ]; then
-    THETA_TERMINAL_PORT=25511
+    THETA_TERMINAL_PORT=25511  # Staging default
     THETA_WS_PORT=25521
-    echo "Using Terminal ID 1 (Staging) - HTTP: $THETA_TERMINAL_PORT, WS: $THETA_WS_PORT"
+    NGINX_PORT=25500  # Nginx listens on same port for both
+    echo "Using Terminal ID 1 (Staging) - Terminal: $THETA_TERMINAL_PORT, Proxy: $NGINX_PORT"
 else
     echo "ERROR: Invalid THETATERMINALID: $THETATERMINALID. Must be 0 or 1."
     exit 1
@@ -26,10 +28,13 @@ fi
 
 # Export for nginx template
 export THETA_TERMINAL_PORT
+export NGINX_PORT
 
 # Generate nginx config from template
-echo "Generating nginx configuration for terminal port $THETA_TERMINAL_PORT..."
-envsubst '${THETA_TERMINAL_PORT} ${THETATERMINALID}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf
+echo "Generating nginx configuration..."
+echo "  Nginx listening on: $NGINX_PORT"
+echo "  Forwarding to terminal on: $THETA_TERMINAL_PORT"
+envsubst '${THETA_TERMINAL_PORT} ${NGINX_PORT} ${THETATERMINALID}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf
 
 # Function to cleanup processes
 cleanup() {
@@ -44,8 +49,8 @@ cleanup() {
 # Set up signal handlers
 trap cleanup TERM INT
 
-# Start the Java Theta Terminal
-echo "Starting Theta Terminal (Java) with ID $THETATERMINALID..."
+# Start the Java Theta Terminal on its default port
+echo "Starting Theta Terminal (Java) with ID $THETATERMINALID on port $THETA_TERMINAL_PORT..."
 java \
     -XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=75.0 \
@@ -67,7 +72,7 @@ if ! kill -0 $JAVA_PID 2>/dev/null; then
     exit 1
 fi
 
-# Test Theta Terminal connection on actual port
+# Test Theta Terminal connection on its default port
 echo "Testing Theta Terminal connection on port $THETA_TERMINAL_PORT..."
 for i in $(seq 1 30); do
     if curl -s --connect-timeout 5 http://127.0.0.1:$THETA_TERMINAL_PORT/system/mdds/status >/dev/null 2>&1; then
@@ -76,7 +81,6 @@ for i in $(seq 1 30); do
     fi
     if [ $i -eq 30 ]; then
         echo "ERROR: Theta Terminal not responding after 30 attempts"
-        echo "Check if terminal ID $THETATERMINALID is correct and port $THETA_TERMINAL_PORT is available"
         kill $JAVA_PID 2>/dev/null
         exit 1
     fi
@@ -84,8 +88,8 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-# Start Nginx reverse proxy
-echo "Starting Nginx reverse proxy (listening on 25510, forwarding to $THETA_TERMINAL_PORT)..."
+# Start Nginx reverse proxy on the proxy port
+echo "Starting Nginx reverse proxy on port $NGINX_PORT..."
 nginx -g "daemon off;" &
 NGINX_PID=$!
 
@@ -101,10 +105,10 @@ if ! kill -0 $NGINX_PID 2>/dev/null; then
 fi
 
 # Test Nginx proxy
-echo "Testing Nginx proxy on port 25510..."
+echo "Testing Nginx proxy on port $NGINX_PORT..."
 for i in $(seq 1 10); do
-    if curl -s --connect-timeout 5 http://127.0.0.1:25510/system/mdds/status >/dev/null 2>&1; then
-        echo "Nginx proxy is working on port 25510"
+    if curl -s --connect-timeout 5 http://127.0.0.1:$NGINX_PORT/system/mdds/status >/dev/null 2>&1; then
+        echo "Nginx proxy is working on port $NGINX_PORT"
         break
     fi
     if [ $i -eq 10 ]; then
@@ -117,17 +121,21 @@ done
 echo "==================================="
 echo "Container startup complete!"
 echo "Terminal ID: $THETATERMINALID"
-echo "Terminal Port: $THETA_TERMINAL_PORT"
-echo "Proxy Port: 25510 (external interface)"
+echo "Terminal Port: $THETA_TERMINAL_PORT (internal)"
+echo "Proxy Port: $NGINX_PORT (external interface)"
+echo ""
+echo "Port mapping:"
+echo "  External → Internal"
+echo "  $NGINX_PORT    → $THETA_TERMINAL_PORT"
 echo ""
 echo "Endpoints:"
-echo "  Theta API: http://localhost:25510"
+echo "  Theta API: http://localhost:$NGINX_PORT"
 echo "  Health: http://localhost:8080/health"
 echo "  Terminal Health: http://localhost:8080/terminal-health"
 echo "  Terminal Info: http://localhost:8080/terminal-info"
 echo ""
-echo "All external services should connect to port 25510"
-echo "Nginx ensures all requests appear as 127.0.0.1 to terminal"
+echo "IMPORTANT: Update your services to use port $NGINX_PORT"
+echo "BASE_URL=http://theta-terminal:$NGINX_PORT"
 echo "==================================="
 
 # Monitor both processes
