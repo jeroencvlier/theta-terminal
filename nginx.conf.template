@@ -13,6 +13,13 @@ http {
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
 
+    # Map to rewrite Next-Page headers with BASE_URL
+    map $upstream_http_next_page $next_page_rewritten {
+        default $upstream_http_next_page;
+        "~^http://127\.0\.0\.1:${THETA_TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}$path";
+        "~^http://localhost:${THETA_TERMINAL_PORT}(?<path>/.*)$" "${BASE_URL}$path";
+    }
+
     # Logging format
     log_format main '$remote_addr - $remote_user [$time_local] "$request" '
                     '$status $body_bytes_sent "$http_referer" '
@@ -56,7 +63,18 @@ http {
             add_header Content-Type text/plain;
         }
 
-        # Proxy all requests to Theta Terminal
+        # Handle health checks and root requests to avoid terminal errors
+        location = / {
+            return 200 "Theta Terminal Proxy - Use specific API endpoints\n";
+            add_header Content-Type text/plain;
+        }
+        
+        location = /favicon.ico {
+            return 204;
+            access_log off;
+        }
+
+        # Proxy all API requests to Theta Terminal
         location / {
             # Preserve original request
             proxy_pass http://theta_terminal;
@@ -84,8 +102,12 @@ http {
             # Handle redirects properly
             proxy_redirect off;
             
-            # IMPORTANT: Pass through Theta API specific headers
-            proxy_pass_header Next-Page;
+            # IMPORTANT: Handle Next-Page header rewriting
+            # Hide original Next-Page header and add rewritten version
+            proxy_hide_header Next-Page;
+            add_header Next-Page $next_page_rewritten always;
+            
+            # Pass through other Theta API specific headers
             proxy_pass_header Content-Type;
             proxy_pass_header Content-Length;
             proxy_pass_header Access-Control-Allow-Origin;

@@ -29,12 +29,14 @@ fi
 # Export for nginx template
 export THETA_TERMINAL_PORT
 export NGINX_PORT
+export BASE_URL
 
 # Generate nginx config from template
 echo "Generating nginx configuration..."
 echo "  Nginx listening on: $NGINX_PORT"
 echo "  Forwarding to terminal on: $THETA_TERMINAL_PORT"
-envsubst '${THETA_TERMINAL_PORT} ${NGINX_PORT} ${THETATERMINALID}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf
+echo "  Base URL for rewrites: $BASE_URL"
+envsubst '${THETA_TERMINAL_PORT} ${NGINX_PORT} ${THETATERMINALID} ${BASE_URL}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf
 
 # Function to cleanup processes
 cleanup() {
@@ -49,13 +51,16 @@ cleanup() {
 # Set up signal handlers
 trap cleanup TERM INT
 
-# Start the Java Theta Terminal on its default port
+# Start the Java Theta Terminal on its default port with optimized memory settings
 echo "Starting Theta Terminal (Java) with ID $THETATERMINALID on port $THETA_TERMINAL_PORT..."
 java \
     -XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
-    -XX:InitialRAMPercentage=50.0 \
-    -Xmx512m \
+    -XX:MaxRAMPercentage=60.0 \
+    -XX:InitialRAMPercentage=30.0 \
+    -Xmx400m \
+    -XX:+UseG1GC \
+    -XX:G1HeapRegionSize=16m \
+    -XX:+DisableExplicitGC \
     -XX:TieredStopAtLevel=1 \
     -jar /app/ThetaTerminal.jar $THETADATAUSERNAME $THETADATAPASSWORD $THETATERMINALID &
 
@@ -123,25 +128,50 @@ echo "Container startup complete!"
 echo "Terminal ID: $THETATERMINALID"
 echo "Terminal Port: $THETA_TERMINAL_PORT (internal)"
 echo "Proxy Port: $NGINX_PORT (external interface)"
+echo "Base URL: $BASE_URL"
 echo ""
 echo "Port mapping:"
 echo "  External → Internal"
 echo "  $NGINX_PORT    → $THETA_TERMINAL_PORT"
 echo ""
+echo "URL rewriting:"
+echo "  Next-Page headers: localhost:$THETA_TERMINAL_PORT → $BASE_URL"
+echo ""
 echo "Endpoints:"
-echo "  Theta API: http://localhost:$NGINX_PORT"
+echo "  Theta API: $BASE_URL"
 echo "  Health: http://localhost:8080/health"
 echo "  Terminal Health: http://localhost:8080/terminal-health"
 echo "  Terminal Info: http://localhost:8080/terminal-info"
 echo ""
-echo "IMPORTANT: Update your services to use port $NGINX_PORT"
-echo "BASE_URL=http://theta-terminal:$NGINX_PORT"
+echo "IMPORTANT: Update your services to use: BASE_URL=$BASE_URL"
 echo "==================================="
 
-# Monitor both processes
+# Monitor both processes with better logging
+echo "Monitoring Java PID: $JAVA_PID, Nginx PID: $NGINX_PID"
 while kill -0 $JAVA_PID 2>/dev/null && kill -0 $NGINX_PID 2>/dev/null; do
+    # Log memory usage every 5 minutes
+    if [ $(($(date +%s) % 300)) -eq 0 ]; then
+        echo "Memory usage: $(free -h | head -2)"
+        echo "Java process status: $(ps -p $JAVA_PID -o pid,ppid,cmd,%mem,%cpu 2>/dev/null || echo 'Java process not found')"
+        echo "Nginx process status: $(ps -p $NGINX_PID -o pid,ppid,cmd,%mem,%cpu 2>/dev/null || echo 'Nginx process not found')"
+    fi
     sleep 10
 done
+
+# Check which process stopped
+if ! kill -0 $JAVA_PID 2>/dev/null; then
+    echo "ERROR: Java Theta Terminal process (PID $JAVA_PID) has stopped!"
+    wait $JAVA_PID
+    java_exit_code=$?
+    echo "Java process exit code: $java_exit_code"
+fi
+
+if ! kill -0 $NGINX_PID 2>/dev/null; then
+    echo "ERROR: Nginx process (PID $NGINX_PID) has stopped!"
+    wait $NGINX_PID  
+    nginx_exit_code=$?
+    echo "Nginx process exit code: $nginx_exit_code"
+fi
 
 echo "One of the services has stopped. Shutting down..."
 cleanup
