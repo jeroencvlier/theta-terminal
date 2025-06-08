@@ -37,6 +37,12 @@ http {
 
     server {
         listen 25500;
+        
+        # Handle ALL HEAD requests (Render health checks) at nginx level
+        if (\$request_method = HEAD) {
+            return 200;
+        }
+        
         location / {
             proxy_pass http://127.0.0.1:${TERMINAL_PORT};
             proxy_set_header X-Real-IP 127.0.0.1;
