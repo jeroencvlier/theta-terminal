@@ -1,12 +1,22 @@
 version: '3.8'
+
 services:
   theta-terminal:
     build:
       context: .
       dockerfile: Dockerfile
-    image: theta-terminal:latest
+    image: theta-terminal:v3
     env_file:
       - .env
+    environment:
+      - THETADATAUSERNAME=${THETADATAUSERNAME}
+      - THETADATAPASSWORD=${THETADATAPASSWORD}
     ports:
       - "25500:25500"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:25500/v3/terminal/mdds/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

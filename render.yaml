@@ -1,5 +1,5 @@
 services:
-  - name: theta-terminal
+  - name: theta-terminal-v3
     type: pserv
     runtime: docker
     plan: starter
@@ -9,3 +9,4 @@ services:
     autoDeploy: true
     envVars:
       - fromGroup: theta-terminal-envs
+    healthCheckPath: /v3/terminal/mdds/status
