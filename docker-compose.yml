@@ -5,11 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile
     image: theta-terminal:latest
-    environment:
-      - THETADATAUSERNAME
-      - THETADATAPASSWORD
-      - THETATERMINALID
+    env_file:
+      - .env
     ports:
-      - "25510:25510"
-      - "25511:25511"
-
+      - "25500:25500"
+    restart: unless-stopped

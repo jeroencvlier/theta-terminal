@@ -44,3 +44,6 @@ RUN chmod +x start.sh
 EXPOSE 25500 8080
 
 ENTRYPOINT ["./start.sh"]
+
+
+# http://theta-terminal-ktbl:25510/v2
