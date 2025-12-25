@@ -1,9 +1,10 @@
 services:
   theta-terminal-v3:
+    container_name: theta-terminal-v3
     build:
       context: .
       dockerfile: Dockerfile
-    image: theta-terminal:latest
+    image: theta-terminal:v3 
     env_file:
       - .env
     environment:
