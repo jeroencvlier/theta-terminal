@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: theta-terminal:v3 
+    image: theta-terminal-v3:latest 
     env_file:
       - .env
     environment:
