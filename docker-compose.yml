@@ -1,6 +1,5 @@
-version: '3.8'
 services:
-  theta-terminal:
+  theta-terminal-v2:
     build:
       context: .
       dockerfile: Dockerfile
