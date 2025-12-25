@@ -86,13 +86,40 @@ http {
 NGINX_EOF
 echo "✓ nginx: :25500 -> :${TERMINAL_PORT}"
 
-# Start terminal
-echo "Starting terminal..."
-java -Xmx2g -jar /app/ThetaTerminal.jar &
+# Start terminal and log output
+echo "Starting terminal (auto-update may take 5+ minutes on first run)..."
+java -Xmx2g -jar /app/ThetaTerminalv3.jar > /tmp/terminal.log 2>&1 &
 JAVA_PID=$!
 
-# Wait for terminal
-sleep 25
+# Wait for terminal to actually start (no timeout)
+echo "Waiting for terminal startup..."
+SECONDS=0
+while true; do
+    # Check if process died
+    if ! kill -0 $JAVA_PID 2>/dev/null; then
+        echo "✗ Terminal died after ${SECONDS}s:"
+        cat /tmp/terminal.log
+        exit 1
+    fi
+    
+    # Check if started
+    if grep -q "Starting server" /tmp/terminal.log 2>/dev/null; then
+        echo "✓ Terminal started after ${SECONDS}s!"
+        break
+    fi
+    
+    # Progress update every 30 seconds
+    if [ $((SECONDS % 30)) -eq 0 ] && [ $SECONDS -gt 0 ]; then
+        echo "Still waiting... (${SECONDS}s) - terminal is updating/starting"
+        tail -2 /tmp/terminal.log 2>/dev/null || echo "(downloading update...)"
+    fi
+    
+    sleep 1
+    SECONDS=$((SECONDS + 1))
+done
+
+echo "Terminal startup complete!"
+cat /tmp/terminal.log
 
 # Start nginx
 nginx -g "daemon off;" &
@@ -112,4 +139,6 @@ echo "nginx proxy: :25500 -> :${TERMINAL_PORT}"
 echo "Test: curl http://localhost:25500/v3/terminal/mdds/status"
 echo ""
 
+# Keep showing logs
+tail -f /tmp/terminal.log &
 wait

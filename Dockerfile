@@ -9,7 +9,7 @@ RUN apk add --no-cache nginx curl && \
 WORKDIR /app
 
 # Copy the v3 terminal JAR
-COPY ThetaTerminalv3.jar ./ThetaTerminal.jar
+COPY ThetaTerminalv3.jar ./ThetaTerminalv3.jar
 
 # Copy startup script
 COPY start.sh .
