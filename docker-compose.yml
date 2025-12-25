@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
-  theta-terminal:
+  theta-terminal-v3:
     build:
       context: .
       dockerfile: Dockerfile
-    image: theta-terminal:v3
+    image: theta-terminal:latest
     env_file:
       - .env
     environment:
