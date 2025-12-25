@@ -1,9 +1,10 @@
 services:
   theta-terminal-v2:
+    container_name: theta-terminal-v2
     build:
       context: .
       dockerfile: Dockerfile
-    image: theta-terminal:latest
+    image: theta-terminal:v2
     env_file:
       - .env
     ports:
