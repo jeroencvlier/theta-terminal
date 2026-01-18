@@ -66,6 +66,11 @@ http {
             proxy_set_header X-Real-IP 127.0.0.1;
             proxy_set_header X-Forwarded-For 127.0.0.1;
             proxy_set_header Host \$host;
+
+            # Timeout settings for large bulk requests (SPXW Greeks etc)
+            proxy_connect_timeout 180s;
+            proxy_send_timeout 180s;
+            proxy_read_timeout 180s;
             
             # Rewrite Next-Page headers
             proxy_hide_header Next-Page;
