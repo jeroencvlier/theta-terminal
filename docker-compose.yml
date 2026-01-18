@@ -1,15 +1,12 @@
-version: '3.8'
 services:
-  theta-terminal:
+  theta-terminal-v2:
+    container_name: theta-terminal-v2
     build:
       context: .
       dockerfile: Dockerfile
-    image: theta-terminal:latest
-    environment:
-      - THETADATAUSERNAME
-      - THETADATAPASSWORD
-      - THETATERMINALID
+    image: theta-terminal:v2
+    env_file:
+      - .env
     ports:
-      - "25510:25510"
-      - "25511:25511"
-
+      - "25500:25500"
+    restart: unless-stopped
