@@ -1,4 +1,5 @@
 import os
+import time
 import httpx
 import logging as log
 import pandas as pd
@@ -39,53 +40,43 @@ def test_theta_data_connection():
     return service_restarted
 
 
-def request_attempts(url, params, max_retries=10, timeout=120.0):
-    """
-    Fetch responses from an API with attempts.
+def request_attempts(url: str, params: dict, max_retries: int = 3, timeout: float = 300.0) -> tuple:
+    """Fetch from the Theta Terminal API with retries on connection errors only.
 
-    Args:
-        url (str): The initial URL to request.
-        params (dict): Query parameters for the request.
-        max_retries (int): Maximum number of retries for transient errors.
-        timeout (float): Timeout for the HTTP request in seconds.
-
-    Returns:
-        tuple: A list of combined responses and the format header.
+    Raises httpx.HTTPStatusError on 4xx/5xx and httpx.TimeoutException on
+    timeout so the caller sees the original error. Timeouts are not retried
+    since they indicate MDDS is down and subsequent attempts will also hang.
     """
-    responses = []
     retries = 0
 
     while True:
         try:
-            # Make the HTTP request
             response = httpx.get(url, params=params, timeout=timeout)
 
             if response.status_code == 472:
-                break
-            else:
-                response.raise_for_status()  # Raise for HTTP errors
+                return [], None
 
-                # Parse and append the response
-                data = response.json().get("response", [])
-                break
+            response.raise_for_status()
+            data = response.json().get("response", [])
+            format_header = data.get("header", {}).get("format", None) if isinstance(data, dict) else None
+            return data if isinstance(data, list) else [], format_header
+
+        except httpx.HTTPStatusError as e:
+            log.error(f"HTTP {e.response.status_code} for {url}")
+            raise
+
+        except httpx.TimeoutException as e:
+            log.error(f"Timeout for {url} - MDDS may be down, not retrying")
+            raise
 
         except httpx.RequestError as e:
-            log.error(f"Request error: {e}")
+            log.warning(f"Request error on attempt {retries + 1}/{max_retries + 1}: {e}")
             if retries < max_retries:
                 retries += 1
-                log.warning(f"Retrying... attempt {retries}")
+                time.sleep(1)
             else:
-                log.error("Max retries exceeded. Exiting pagination.")
-                break
-        except KeyError as e:
-            log.error(f"Key error: {e}. Response format may have changed.")
-            break
-        except Exception as e:
-            log.error(f"Unexpected error: {e}")
-            break
-    # Return responses and format header (if available)
-    format_header = data.get("header", {}).get("format", None) if "data" in locals() else None
-    return responses, format_header
+                log.error("Max retries exceeded.")
+                raise
 
 
 def response_to_df(response, columns):
