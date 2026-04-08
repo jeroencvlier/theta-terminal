@@ -50,27 +50,42 @@ def request_attempts(url: str, params: dict, max_retries: int = 3, timeout: floa
     retries = 0
 
     while True:
+        t0 = time.monotonic()
         try:
             response = httpx.get(url, params=params, timeout=timeout)
+            elapsed = time.monotonic() - t0
 
             if response.status_code == 472:
+                log.info(f"NO_DATA {url} params={params} ({elapsed:.1f}s)")
                 return [], None
 
             response.raise_for_status()
+            size = len(response.content)
+            size_str = (
+                f"{size / 1e9:.2f}GB"
+                if size >= 1e9
+                else f"{size / 1e6:.1f}MB"
+                if size >= 1e6
+                else f"{size / 1e3:.0f}KB"
+            )
+            log.info(f"OK {url} params={params} ({elapsed:.1f}s, {size_str})")
             data = response.json().get("response", [])
             format_header = data.get("header", {}).get("format", None) if isinstance(data, dict) else None
             return data if isinstance(data, list) else [], format_header
 
         except httpx.HTTPStatusError as e:
-            log.error(f"HTTP {e.response.status_code} for {url}")
+            elapsed = time.monotonic() - t0
+            log.error(f"HTTP {e.response.status_code} {url} params={params} ({elapsed:.1f}s)")
             raise
 
         except httpx.TimeoutException as e:
-            log.error(f"Timeout for {url} - MDDS may be down, not retrying")
+            elapsed = time.monotonic() - t0
+            log.error(f"TIMEOUT {url} params={params} ({elapsed:.1f}s) - MDDS may be down, not retrying")
             raise
 
         except httpx.RequestError as e:
-            log.warning(f"Request error on attempt {retries + 1}/{max_retries + 1}: {e}")
+            elapsed = time.monotonic() - t0
+            log.warning(f"REQUEST_ERROR attempt {retries + 1}/{max_retries + 1} {url} ({elapsed:.1f}s): {e}")
             if retries < max_retries:
                 retries += 1
                 time.sleep(1)

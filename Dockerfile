@@ -20,8 +20,4 @@ RUN chmod +x start.sh
 # 25503 - terminal default port (internal only, not exposed)
 EXPOSE 25500
 
-# Health check using v3 endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:25500/v3/terminal/mdds/status || exit 1
-
 ENTRYPOINT ["./start.sh"]
