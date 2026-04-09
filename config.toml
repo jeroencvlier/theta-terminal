@@ -1,6 +1,7 @@
 host = "0.0.0.0"
 port = 25503
 log_directory = "/tmp"
+request_queue_length=100
 
 [mdds_server]
 host = "mdds-01.thetadata.us"

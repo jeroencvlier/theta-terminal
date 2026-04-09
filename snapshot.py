@@ -1,6 +1,9 @@
 import os
+import csv
 import time
+import random
 import httpx
+from io import StringIO
 import logging as log
 import pandas as pd
 import asyncio
@@ -40,58 +43,102 @@ def test_theta_data_connection():
     return service_restarted
 
 
-def request_attempts(url: str, params: dict, max_retries: int = 3, timeout: float = 300.0) -> tuple:
-    """Fetch from the Theta Terminal API with retries on connection errors only.
+def fetch_query_from_endpoint(url: str, params: dict, max_retries=1):
+    params = {**params, "format": "csv"}
 
-    Raises httpx.HTTPStatusError on 4xx/5xx and httpx.TimeoutException on
-    timeout so the caller sees the original error. Timeouts are not retried
-    since they indicate MDDS is down and subsequent attempts will also hang.
-    """
-    retries = 0
+    full_url = os.getenv("THETA_V3_BASE_URL") + url
 
-    while True:
-        t0 = time.monotonic()
+    for attempt in range(max_retries):
+        params_str = f"{url} | " + " ".join(f"{k}={v}" for k, v in params.items() if k != "format")
+        t0 = time.time()
         try:
-            response = httpx.get(url, params=params, timeout=timeout)
-            elapsed = time.monotonic() - t0
-
-            if response.status_code == 472:
-                log.info(f"NO_DATA {url} params={params} ({elapsed:.1f}s)")
-                return [], None
-
+            response = httpx.get(url=full_url, params=params, timeout=None)
             response.raise_for_status()
-            size = len(response.content)
-            size_str = (
-                f"{size / 1e9:.2f}GB"
-                if size >= 1e9
-                else f"{size / 1e6:.1f}MB"
-                if size >= 1e6
-                else f"{size / 1e3:.0f}KB"
-            )
-            log.info(f"OK {url} params={params} ({elapsed:.1f}s, {size_str})")
-            data = response.json().get("response", [])
-            format_header = data.get("header", {}).get("format", None) if isinstance(data, dict) else None
-            return data if isinstance(data, list) else [], format_header
-
-        except httpx.HTTPStatusError as e:
-            elapsed = time.monotonic() - t0
-            log.error(f"HTTP {e.response.status_code} {url} params={params} ({elapsed:.1f}s)")
-            raise
-
-        except httpx.TimeoutException as e:
-            elapsed = time.monotonic() - t0
-            log.error(f"TIMEOUT {url} params={params} ({elapsed:.1f}s) - MDDS may be down, not retrying")
-            raise
-
+            elapsed = time.time() - t0
+            log.info(f"200 OK | {elapsed:.2f}s | {params_str}")
+            return pd.read_csv(StringIO(response.text))
         except httpx.RequestError as e:
-            elapsed = time.monotonic() - t0
-            log.warning(f"REQUEST_ERROR attempt {retries + 1}/{max_retries + 1} {url} ({elapsed:.1f}s): {e}")
-            if retries < max_retries:
-                retries += 1
-                time.sleep(1)
-            else:
-                log.error("Max retries exceeded.")
+            elapsed = time.time() - t0
+            log.warning(
+                f"REQUEST_ERROR | attempt={attempt + 1}/{max_retries} | {elapsed:.2f}s | {e} | {params_str}"
+            )
+            time.sleep(min(2**attempt, 60) + random.uniform(0, 5))
+        except httpx.HTTPStatusError as err:
+            elapsed = time.time() - t0
+            status = err.response.status_code
+
+            if status == 429:
+                log.warning(
+                    f"429 OS_LIMIT | attempt={attempt + 1}/{max_retries} | {elapsed:.2f}s | {params_str}"
+                )
+                time.sleep(min(2**attempt, 60) + random.uniform(0, 5))
+
+            elif status == 470:
+                log.warning(
+                    f"470 GENERAL | attempt={attempt + 1}/{max_retries} | {elapsed:.2f}s | {params_str}"
+                )
+                time.sleep(min(2**attempt, 60) + random.uniform(0, 5))
+
+            elif status == 474:
+                log.warning(
+                    f"474 DISCONNECTED | attempt={attempt + 1}/{max_retries} | {elapsed:.2f}s | {params_str}"
+                )
+                time.sleep(min(2**attempt, 60) + random.uniform(0, 5))
+
+            elif status == 475:
+                log.warning(
+                    f"475 TERMINAL_PARSE | attempt={attempt + 1}/{max_retries} | {elapsed:.2f}s | {params_str}"
+                )
+                time.sleep(min(2**attempt, 60) + random.uniform(0, 5))
+
+            elif status == 504:
+                log.error(f"504 GATEWAY_TIMEOUT | {elapsed:.2f}s | {params_str}")
                 raise
+
+            elif status == 571:
+                log.warning(
+                    f"571 SERVER_STARTING | attempt={attempt + 1}/{max_retries} | {elapsed:.2f}s | {params_str}"
+                )
+                time.sleep(30)
+
+            elif status == 477:
+                log.warning(
+                    f"477 NO_PAGE_FOUND | attempt={attempt + 1}/{max_retries} | {elapsed:.2f}s | {params_str}"
+                )
+
+            elif status == 472:
+                log.info(f"472 NO_DATA | {elapsed:.2f}s | {params_str}")
+                raise
+
+            elif status == 471:
+                log.error(f"471 PERMISSION | {elapsed:.2f}s | {params_str}")
+                raise
+
+            elif status == 473:
+                log.error(f"473 INVALID_PARAMS | {elapsed:.2f}s | {params_str}")
+                raise
+
+            elif status == 476:
+                log.error(f"476 WRONG_IP | {elapsed:.2f}s | {params_str}")
+                raise
+
+            elif status == 570:
+                log.error(f"570 LARGE_REQUEST | {elapsed:.2f}s | {params_str}")
+                raise
+
+            elif status == 404:
+                log.error(f"404 NO_IMPL | {elapsed:.2f}s | {params_str}")
+                raise
+
+            elif status == 572:
+                log.error(f"572 UNCAUGHT_ERROR | {elapsed:.2f}s | {params_str}")
+                raise
+
+            else:
+                log.error(f"{status} UNKNOWN | {elapsed:.2f}s | {err.response.reason_phrase} | {params_str}")
+                raise
+
+    raise RuntimeError(f"Max retries ({max_retries}) exceeded for {url} | {params_str}")
 
 
 def response_to_df(response, columns):
@@ -124,7 +171,7 @@ def multi_root_query_df(roots: list[str], params: dict, url: str):
     responses_dfs = []
     for root in roots:
         params["root"] = root
-        response, columns = request_attempts(url, params)
+        response, columns = fetch_query_from_endpoint(url, params)
         df = response_to_df(response, columns)
         responses_dfs.append(df)
     return pd.concat(responses_dfs)
@@ -136,7 +183,7 @@ def multi_root_query_list(roots: list[str], params: dict, url: str):
     responses_list = []
     for root in roots:
         params["root"] = root
-        response, _ = request_attempts(url, params)
+        response, _ = fetch_query_from_endpoint(url, params)
         responses_list.extend(response)
     return sorted(list(set(responses_list)))
 
@@ -151,7 +198,7 @@ async def bulk_csv_request_async(session, url, params):
     dfs = []
 
     while url is not None:
-        async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=60)) as response:
+        async with session.get(url, params=params, timeout=None) as response:
             response.raise_for_status()
             text = await response.text()
 

@@ -42,6 +42,7 @@ cat > /app/config.toml << EOF
 host = "0.0.0.0"
 port = ${TERMINAL_PORT}
 log_directory = "/tmp"
+request_queue_length = 128
 
 [mdds_server]
 host = "mdds-01.thetadata.us"
@@ -67,18 +68,22 @@ events {
     worker_connections 1024;
 }
 http {
-    access_log /dev/stdout;
+    log_format timed '\$remote_addr [\$time_local] "\$request" \$status \${body_bytes_sent}B \${request_time}s';
+    access_log /dev/stdout timed;
     error_log /dev/stderr;
     server {
         listen 25500;
+        location /mcp {
+            return 403;
+        }
         location / {
             proxy_pass http://127.0.0.1:${TERMINAL_PORT};
             proxy_set_header X-Real-IP 127.0.0.1;
             proxy_set_header X-Forwarded-For 127.0.0.1;
             proxy_set_header Host \$host;
-            proxy_connect_timeout 300s;
-            proxy_send_timeout 300s;
-            proxy_read_timeout 300s;
+            proxy_connect_timeout 3600s;
+            proxy_send_timeout 3600s;
+            proxy_read_timeout 3600s;
             proxy_buffering off;
         }
     }
