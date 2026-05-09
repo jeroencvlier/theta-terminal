@@ -10,3 +10,5 @@ services:
     ports:
       - "25500:25500"
     restart: unless-stopped
+
+
