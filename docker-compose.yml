@@ -1,15 +1,26 @@
 services:
-  theta-terminal-v3:
-    container_name: theta-terminal-v3
+  theta-terminal-v3-prod:
+    container_name: theta-terminal-v3-prod
     build:
       context: .
       dockerfile: Dockerfile
-    image: theta-terminal-v3:latest 
+    image: theta-terminal-v3:latest
     env_file:
-      - .env
-    environment:
-      - THETADATAUSERNAME=${THETADATAUSERNAME}
-      - THETADATAPASSWORD=${THETADATAPASSWORD}
+      - .env.prod
     ports:
       - "25500:25500"
     restart: unless-stopped
+
+  theta-terminal-v3-stage:
+    container_name: theta-terminal-v3-stage
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: theta-terminal-v3:latest
+    env_file:
+      - .env.stage
+    ports:
+      - "25501:25500"
+    restart: unless-stopped
+    profiles:
+      - stage

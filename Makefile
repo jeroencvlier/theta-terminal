@@ -55,6 +55,25 @@ logs:
 ## Restart containers
 restart: down up
 
+## Start prod + staging containers (staging on :25501)
+up-all:
+	$(COMPOSE) --profile stage up -d
+
+## Start staging container only (:25501)
+up-stage:
+	$(COMPOSE) --profile stage up -d theta-terminal-v3-stage
+
+## Stop staging container only
+down-stage:
+	$(COMPOSE) --profile stage stop theta-terminal-v3-stage
+
+## Stop prod + staging containers
+down-all:
+	$(COMPOSE) --profile stage down
+
+## Restart prod + staging containers
+restart-all: down-all up-all
+
 ## Clean up containers, images, and volumes
 clean:
 	$(COMPOSE) down --rmi all --volumes --remove-orphans

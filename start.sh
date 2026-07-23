@@ -13,6 +13,22 @@ if [ -z "$THETADATAPASSWORD" ]; then
     exit 1
 fi
 
+# Environment: PROD (production) or STAGE (staging)
+THETA_ENV=${THETA_ENV:-PROD}
+case "$THETA_ENV" in
+    PROD)
+        FPSS_REGION="fpss_nj_hosts"
+        ;;
+    STAGE)
+        FPSS_REGION="fpss_stage_hosts"
+        ;;
+    *)
+        echo "ERROR: THETA_ENV must be PROD or STAGE (got '$THETA_ENV')"
+        exit 1
+        ;;
+esac
+echo "Environment: $THETA_ENV (fpss_region=$FPSS_REGION)"
+
 # Optional: Terminal ID
 THETATERMINALID=${THETATERMINALID:-""}
 
@@ -44,6 +60,9 @@ port = ${TERMINAL_PORT}
 log_directory = "/tmp"
 request_queue_length = 128
 
+[env]
+mdds_type = "${THETA_ENV}"
+
 [mdds_server]
 host = "mdds-01.thetadata.us"
 port = 443
@@ -54,7 +73,7 @@ enable = true
 reconnect_wait = 1000
 fpss_queue_depth = 1000000
 ws_port = ${WS_PORT}
-fpss_region = "fpss_nj_hosts"
+fpss_region = "${FPSS_REGION}"
 fpss_nj_hosts = "nj-a.thetadata.us:20000,nj-a.thetadata.us:20001,nj-b.thetadata.us:20000,nj-b.thetadata.us:20001"
 fpss_stage_hosts = "nj-a.thetadata.us:20100,test-server.thetadata.us:20100,test-server.thetadata.us:20101"
 fpss_dev_hosts = "nj-a.thetadata.us:20200,test-server.thetadata.us:20200,test-server.thetadata.us:20201"
