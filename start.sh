@@ -3,13 +3,8 @@
 echo "Starting Theta Terminal v3 with nginx proxy..."
 
 # Validate required environment variables
-if [ -z "$THETADATAUSERNAME" ]; then
-    echo "ERROR: THETADATAUSERNAME environment variable is required"
-    exit 1
-fi
-
-if [ -z "$THETADATAPASSWORD" ]; then
-    echo "ERROR: THETADATAPASSWORD environment variable is required"
+if [ -z "$THETADATA_API_KEY" ]; then
+    echo "ERROR: THETADATA_API_KEY environment variable is required"
     exit 1
 fi
 
@@ -46,12 +41,8 @@ else
     echo "Terminal port: $TERMINAL_PORT"
 fi
 
-# Create credentials
-cat > /app/creds.txt << EOF
-$THETADATAUSERNAME
-$THETADATAPASSWORD
-EOF
-echo "✓ Credentials created"
+# API key auth: terminal reads THETADATA_API_KEY from environment (no creds.txt needed)
+echo "✓ API key auth (THETADATA_API_KEY)"
 
 # Create config.toml with FULL proper structure (matching default)
 cat > /app/config.toml << EOF

@@ -13,11 +13,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Create .env.prod
+      run: |
+        printf 'THETADATA_API_KEY=%s\nTHETA_ENV=PROD\nBASE_URL=http://127.0.0.1:25500\n' \
+          "${{ secrets.THETADATA_API_KEY }}" > .env.prod
+
     - name: Build and test
-      env:
-        THETADATAUSERNAME: ${{ secrets.THETADATAUSERNAME }}
-        THETADATAPASSWORD: ${{ secrets.THETADATAPASSWORD }}
-        THETATERMINALID: ${{ secrets.THETATERMINALID }}
       run: |
         make build
         make test
