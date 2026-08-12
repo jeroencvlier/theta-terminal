@@ -1,14 +1,14 @@
-services:
-  - name: theta-terminal-v3-prod
-    type: pserv
-    runtime: docker
-    plan: starter
-    region: ohio
-    branch: main
-    dockerfilePath: Dockerfile
-    autoDeploy: true
-    envVars:
-      - fromGroup: theta-terminal-envs
-      - key: THETA_ENV
-        value: PROD
-    healthCheckPath: /v3/terminal/mdds/status
+# services:
+#   - name: theta-terminal-v3
+#     type: pserv
+#     runtime: docker
+#     plan: starter
+#     region: ohio
+#     branch: main
+#     dockerfilePath: Dockerfile
+#     autoDeploy: true
+#     envVars:
+#       - fromGroup: theta-terminal-envs
+#       - key: THETA_ENV
+#         value: PROD
+#     healthCheckPath: /v3/terminal/mdds/status
