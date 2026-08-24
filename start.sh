@@ -13,9 +13,11 @@ THETA_ENV=${THETA_ENV:-PROD}
 case "$THETA_ENV" in
     PROD)
         FPSS_REGION="fpss_nj_hosts"
+        MCP_ENABLED_DEFAULT="false"
         ;;
     STAGE)
         FPSS_REGION="fpss_stage_hosts"
+        MCP_ENABLED_DEFAULT="true"
         ;;
     *)
         echo "ERROR: THETA_ENV must be PROD or STAGE (got '$THETA_ENV')"
@@ -23,6 +25,9 @@ case "$THETA_ENV" in
         ;;
 esac
 echo "Environment: $THETA_ENV (fpss_region=$FPSS_REGION)"
+
+# MCP endpoint: enabled on STAGE by default, blocked on PROD. Override with MCP_ENABLED.
+MCP_ENABLED=${MCP_ENABLED:-$MCP_ENABLED_DEFAULT}
 
 # Optional: Terminal ID
 THETATERMINALID=${THETATERMINALID:-""}
@@ -72,6 +77,17 @@ EOF
 
 echo "✓ config.toml created with port=$TERMINAL_PORT"
 
+# Block /mcp unless enabled (empty block => /mcp falls through to the generic proxy)
+if [ "$MCP_ENABLED" = "true" ]; then
+    MCP_LOCATION=""
+    echo "✓ MCP endpoint enabled (/mcp proxied)"
+else
+    MCP_LOCATION="        location /mcp {
+            return 403;
+        }"
+    echo "✓ MCP endpoint blocked (/mcp -> 403)"
+fi
+
 # Create nginx config
 cat > /etc/nginx/nginx.conf << NGINX_EOF
 events {
@@ -83,9 +99,7 @@ http {
     error_log /dev/stderr;
     server {
         listen 25500;
-        location /mcp {
-            return 403;
-        }
+${MCP_LOCATION}
         location / {
             proxy_pass http://127.0.0.1:${TERMINAL_PORT};
             proxy_set_header X-Real-IP 127.0.0.1;
