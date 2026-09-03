@@ -132,7 +132,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-terminal_versions/
 
 .venv/
 creds.txt
