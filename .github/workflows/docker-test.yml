@@ -2,9 +2,9 @@ name: Docker Build, and Test
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ dev ]
+    branches: [ main ]
 
 jobs:
   build-test-connect:
@@ -15,7 +15,7 @@ jobs:
 
     - name: Create .env.prod
       run: |
-        printf 'THETADATA_API_KEY=%s\nTHETA_ENV=PROD\nBASE_URL=http://127.0.0.1:25500\n' \
+        printf 'THETADATA_API_KEY=%s\nTHETA_ENV=PROD\n' \
           "${{ secrets.THETADATA_API_KEY }}" > .env.prod
 
     - name: Build and test

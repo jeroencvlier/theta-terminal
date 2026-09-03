@@ -1,10 +1,7 @@
 .PHONY: help build up down logs restart clean all start test
 
-# Detect branch/version automatically from git
-BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "v3")
-VERSION := $(if $(filter v2,$(BRANCH)),v2,v3)
-PROJECT := theta-terminal-$(VERSION)
-IMAGE := theta-terminal-$(VERSION)
+PROJECT := theta-terminal-v3
+IMAGE := theta-terminal-v3
 COMPOSE := docker compose -p $(PROJECT)
 
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -19,7 +16,6 @@ RESET  := $(shell tput -Txterm sgr0)
 ## Show available commands
 help:
 	@echo ''
-	@echo '${GREEN}Current version: $(VERSION)${RESET}'
 	@echo '${GREEN}Project name: $(PROJECT)${RESET}'
 	@echo ''
 	@echo 'Usage:'
@@ -88,20 +84,17 @@ all: build up
 test-connection: 
 	@echo "Waiting for service to start..."
 	@sleep 5
-	@echo "Testing connection to Theta Terminal $(VERSION)..."
-	@curl -s http://127.0.0.1:25500/$(VERSION)/terminal/mdds/status > /tmp/status.txt
-	@STATUS=$$(cat /tmp/status.txt); \
+	@echo "Testing connection to Theta Terminal v3..."
+	@STATUS=$$(curl -s http://127.0.0.1:25500/v3/terminal/mdds/status); \
 	if echo "$$STATUS" | grep -q "CONNECTED"; then \
 		echo "${GREEN}✓ Connection successful!${RESET}"; \
 		echo "Status: $$STATUS"; \
-		rm /tmp/status.txt; \
 		exit 0; \
 	else \
 		echo "${RED}✗ Connection failed${RESET}"; \
 		echo "Status response: $$STATUS"; \
 		echo "\nContainer logs:"; \
 		$(COMPOSE) logs --tail=50; \
-		rm /tmp/status.txt; \
 		exit 1; \
 	fi
 
@@ -111,4 +104,4 @@ test: up test-connection
 ## Show terminal version
 version:
 	@echo "Checking terminal version..."
-	@curl -s http://127.0.0.1:25500/$(VERSION)/system/version || echo "Terminal not running"
+	@curl -s http://127.0.0.1:25500/v3/system/version || echo "Terminal not running"
