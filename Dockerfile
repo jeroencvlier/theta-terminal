@@ -6,6 +6,12 @@ FROM eclipse-temurin:21-jre-alpine
 RUN apk add --no-cache nginx curl && \
     mkdir -p /root/ThetaData/ThetaTerminal
 
+# Distrust eMudhra (emSign) root: intermediates compromised Oct 2026.
+# ThetaData uses Let's Encrypt (mdds) and its own cert (fpss), so nothing here needs it.
+RUN keytool -delete -cacerts -storepass changeit \
+    -alias "cn_emsign_root_ca__g1,o_emudhra_technologies_limited,ou_emsign_pki,c_in [jdk]" \
+    || echo "emSign root not present"
+
 WORKDIR /app
 
 # Copy the v3 terminal JAR
